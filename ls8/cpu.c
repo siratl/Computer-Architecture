@@ -1,4 +1,7 @@
 #include "cpu.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #define DATA_LEN 6
 
@@ -43,6 +46,22 @@ void alu(struct cpu *cpu, enum alu_op op, unsigned char regA, unsigned char regB
 }
 
 /**
+ * Read RAM inside CPU struct at given index
+ */
+unsigned char cpu_ram_read(struct cpu *cpu, unsigned int index)
+{
+  return cpu->ram[index];
+}
+
+/**
+ * Write a value to the RAM inside CPU struct at given index
+ */
+void cpu_ram_write(struct cpu *cpu, unsigned int index, unsigned char value)
+{
+  cpu->ram[index] = value;
+}
+
+/**
  * Run the CPU
  */
 void cpu_run(struct cpu *cpu)
@@ -53,11 +72,36 @@ void cpu_run(struct cpu *cpu)
   {
     // TODO
     // 1. Get the value of the current instruction (in address PC).
+    unsigned char IR = cpu_ram_read(cpu, cpu->pc);
     // 2. Figure out how many operands this next instruction requires
+    int operands = IR >> 6;
     // 3. Get the appropriate value(s) of the operands following this instruction
+    unsigned char operandA, operandB;
+    if (operands > 0)
+    {
+      operandA = cpu_ram_read(cpu, cpu->pc + 1);
+      if (operands > 1)
+      {
+        operandB = cpu_ram_read(cpu, cpu->pc + 2);
+      }
+    }
     // 4. switch() over it to decide on a course of action.
     // 5. Do whatever the instruction should do according to the spec.
+    switch (IR)
+    {
+    case LDI:
+      cpu_ram_write(cpu, operandA, operandB);
+      break;
+    case PRN:
+      printf("%d\n", cpu_ram_read(cpu, operandA));
+      break;
+    default:
+      printf("Error - Instruction Register Unknown at register PC index {%d}\n", cpu->pc);
+      running = 0;
+      break;
+    }
     // 6. Move the PC to the next instruction.
+    cpu->pc += operands + 1;
   }
 }
 
@@ -79,20 +123,4 @@ void cpu_init(struct cpu *cpu)
 
   // * RAM is cleared to `0`.
   memset(cpu->ram, 0, 256 * sizeof(unsigned char));
-}
-
-/**
- * Read RAM inside CPU struct at given index
- */
-unsigned char cpu_ram_read(struct cpu *cpu, unsigned int index)
-{
-  return cpu->ram[index];
-}
-
-/**
- * Write a value to the RAM inside CPU struct at given index
- */
-void cpu_ram_write(struct cpu *cpu, unsigned int index, unsigned char value)
-{
-  cpu->ram[index] = value;
 }
